@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Ventilation Coach (PWA) — Datex-Ohmeda</title>
+<meta name="theme-color" content="#0ea5e9"/>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icons/icon-192.png" sizes="192x192">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<style>
+  :root{--bg:#f8fafc;--card:#fff;--muted:#64748b;--text:#0f172a;--line:#e2e8f0}
+  *{box-sizing:border-box} body{margin:0;background:linear-gradient(#f8fafc,#fff);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial}
+  .container{max-width:960px;margin:0 auto;padding:16px}
+  h1{font-size:20px;margin:0 0 4px;color:var(--text)} small{color:var(--muted)}
+  .row{display:grid;grid-template-columns:1fr;gap:12px}
+  @media(min-width:900px){.row{grid-template-columns:1fr 1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
+  label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
+  input,select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:12px;font-size:14px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .pill{background:#f1f5f9;border-radius:12px;padding:10px}
+  .muted{color:var(--muted);font-size:12px}
+  .big{font-weight:600;font-size:18px}
+  ul{margin:8px 0 0 18px;padding:0}
+  li{margin-bottom:6px}
+  .warn{background:#fffbeb;border:1px solid #fef3c7;color:#92400e;border-radius:12px;padding:10px;font-size:13px}
+  .footer{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:12px;margin-top:12px;flex-wrap:wrap}
+  .tag{border:1px solid var(--line);border-radius:999px;padding:4px 8px;font-size:11px;background:#fff}
+  .titlebar{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="titlebar">
+      <div>
+        <h1>Ventilation Coach (PWA)</h1>
+        <small>Ferramenta educativa — não substitui julgamento clínico. Baseado no guia (anestesia vs. UTI, estratégia protetora e Datex-Ohmeda).</small>
+      </div>
+      <div>
+        <span class="tag">Datex-Ohmeda (GE)</span>
+        <span class="tag">Cães & Gatos</span>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="card">
+        <h3>Parâmetros do Paciente</h3>
+        <div class="grid" style="margin-top:8px">
+          <div>
+            <label>Espécie</label>
+            <select id="species">
+              <option value="Cão">Cão</option>
+              <option value="Gato">Gato</option>
+            </select>
+          </div>
+          <div>
+            <label>Peso (kg)</label>
+            <input id="weight" inputmode="decimal" value="20"/>
+          </div>
+          <div>
+            <label>Contexto</label>
+            <select id="context">
+              <option value="Anestesia">Anestesia</option>
+              <option value="ICU">UTI</option>
+            </select>
+          </div>
+          <div>
+            <label>Padrão Pulmonar</label>
+            <select id="pattern">
+              <option>Normal</option>
+              <option>Restritiva/SDRA</option>
+              <option>Obstrutiva</option>
+              <option>Obeso/Pós-op</option>
+              <option>Trauma/Pneumotórax</option>
+            </select>
+          </div>
+          <div>
+            <label>Modo</label>
+            <select id="mode">
+              <option>VCV</option>
+              <option>PCV</option>
+              <option>SIMV</option>
+              <option>PSV</option>
+            </select>
+          </div>
+        </div>
+
+        <h4 style="margin-top:14px">Medidas (opcional)</h4>
+        <div class="grid">
+          <div><label>EtCO₂ (mmHg)</label><input id="EtCO2" inputmode="decimal"/></div>
+          <div><label>PaCO₂ (mmHg)</label><input id="PaCO2" inputmode="decimal"/></div>
+          <div><label>SpO₂ (%)</label><input id="SpO2" inputmode="decimal"/></div>
+          <div><label>PaO₂ (mmHg)</label><input id="PaO2" inputmode="decimal"/></div>
+          <div><label>FiO₂ (0–1)</label><input id="FiO2" inputmode="decimal"/></div>
+          <div><label>PEEP (cmH₂O)</label><input id="PEEP" inputmode="decimal"/></div>
+          <div><label>Pplat (cmH₂O)</label><input id="Pplat" inputmode="decimal"/></div>
+          <div><label>Ppeak (cmH₂O)</label><input id="Ppeak" inputmode="decimal"/></div>
+          <div><label>FR atual (rpm)</label><input id="RR" inputmode="decimal"/></div>
+          <div><label>Vt atual (mL)</label><input id="VtNow" inputmode="decimal"/></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Recomendações Iniciais</h3>
+        <div class="grid">
+          <div class="pill"><div class="muted">Vt recomendado</div><div class="big" id="vtRec">—</div></div>
+          <div class="pill"><div class="muted">FR recomendada</div><div class="big" id="rrRec">—</div></div>
+          <div class="pill"><div class="muted">PEEP sugerida</div><div class="big" id="peepRec">—</div></div>
+          <div class="pill"><div class="muted">I:E sugerido</div><div class="big" id="ieRec">—</div></div>
+          <div class="pill"><div class="muted">FiO₂ (inicial)</div><div class="big" id="fio2Rec">—</div></div>
+          <div class="pill"><div class="muted">V̇min estimado</div><div class="big" id="vminRec">—</div></div>
+        </div>
+
+        <div id="pcvBox" class="pill" style="margin-top:10px; display:none">
+          <div class="muted">Sugestão de PInsp (PCV)</div>
+          <div>Complacência estimada: <b><span id="cstat">—</span></b> mL/cmH₂O</div>
+          <div class="big">PInsp ≈ <span id="pinsp">—</span> cmH₂O</div>
+        </div>
+
+        <div class="grid" style="margin-top:8px">
+          <div class="pill"><div class="muted">Driving Pressure</div><div class="big" id="dp">—</div></div>
+          <div class="pill"><div class="muted">PaO₂/FiO₂</div><div class="big" id="pfr">—</div></div>
+        </div>
+
+        <div id="alerts" class="warn" style="display:none;margin-top:10px"></div>
+
+        <div style="margin-top:10px">
+          <div class="muted">Recomendações baseadas nas medidas</div>
+          <ul id="recoList"></ul>
+        </div>
+
+        <div class="footer">
+          <div>Ferramenta educativa — use com julgamento clínico.</div>
+          <div>v0.2 • <span id="date"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+function round(v, p=1){ const m=Math.pow(10,p); return Math.round(v*m)/m; }
+function num(v){ const n = parseFloat(v); return isNaN(n) ? undefined : n; }
+
+function defaultVtMlPerKg(species, context, pattern){
+  if (context === 'ICU'){
+    if (pattern === 'Restritiva/SDRA') return 6;
+    if (pattern === 'Obstrutiva') return 8;
+    return 7;
+  } else {
+    if (pattern === 'Restritiva/SDRA') return 8;
+    if (pattern === 'Obstrutiva') return species === 'Gato' ? 9 : 10;
+    if (pattern === 'Obeso/Pós-op') return species === 'Gato' ? 9 : 10;
+    if (pattern === 'Trauma/Pneumotórax') return species === 'Gato' ? 8 : 10;
+    return species === 'Gato' ? 10 : 12;
+  }
+}
+function defaultRR(species, context, pattern){
+  if (context === 'ICU'){
+    let base = species === 'Gato' ? 18 : 14;
+    if (pattern === 'Restritiva/SDRA') base += 4;
+    if (pattern === 'Obstrutiva') base -= 2;
+    return clamp(base, 8, 30);
+  } else {
+    let base = species === 'Gato' ? 16 : 12;
+    if (pattern === 'Restritiva/SDRA') base += 4;
+    if (pattern === 'Obstrutiva') base -= 2;
+    return clamp(base, 8, 30);
+  }
+}
+function defaultPEEP(context, pattern){
+  if (pattern === 'Restritiva/SDRA') return context === 'ICU' ? 8 : 5;
+  if (pattern === 'Obeso/Pós-op') return context === 'ICU' ? 6 : 5;
+  if (pattern === 'Trauma/Pneumotórax') return 2;
+  return context === 'ICU' ? 5 : 3;
+}
+function defaultIE(pattern){ return pattern === 'Obstrutiva' ? '1:3' : '1:2'; }
+function defaultFiO2(context){ return context === 'Anestesia' ? 1.0 : 0.5; }
+
+function estimateCompliance(species, weightKg, vtMl, pplat, peep){
+  if (vtMl !== undefined && pplat !== undefined && peep !== undefined && (pplat - peep) > 0.1){
+    return vtMl / (pplat - peep);
+  }
+  const perKg = species === 'Gato' ? 1.2 : 1.8;
+  return perKg * (weightKg || 1);
+}
+function suggestPinsp(peep, vtTargetMl, cstat){ return peep + (vtTargetMl / Math.max(1, cstat)); }
+
+function recalc(){
+  const species = document.getElementById('species').value;
+  const weight = num(document.getElementById('weight').value) || 0;
+  const context = document.getElementById('context').value;
+  const pattern = document.getElementById('pattern').value;
+  const mode = document.getElementById('mode').value;
+
+  const EtCO2 = num(document.getElementById('EtCO2').value);
+  const PaCO2 = num(document.getElementById('PaCO2').value);
+  const SpO2 = num(document.getElementById('SpO2').value);
+  const PaO2 = num(document.getElementById('PaO2').value);
+  const FiO2 = num(document.getElementById('FiO2').value);
+  const PEEP = num(document.getElementById('PEEP').value);
+  const Pplat = num(document.getElementById('Pplat').value);
+  const RR = num(document.getElementById('RR').value);
+  const VtNow = num(document.getElementById('VtNow').value);
+
+  const vtPerKg = defaultVtMlPerKg(species, context, pattern);
+  const vtTargetMl = Math.round(vtPerKg * weight);
+  const rrTarget = defaultRR(species, context, pattern);
+  const peepTarget = defaultPEEP(context, pattern);
+  const ieTarget = defaultIE(pattern);
+  const fio2Target = defaultFiO2(context);
+  const rrUse = RR !== undefined ? RR : rrTarget;
+  const minuteVent = round((vtTargetMl * rrUse)/1000,2);
+
+  document.getElementById('vtRec').textContent = (isFinite(vtTargetMl) ? vtTargetMl : '—') + ' mL (' + vtPerKg + ' mL/kg)';
+  document.getElementById('rrRec').textContent = rrTarget + ' rpm';
+  document.getElementById('peepRec').textContent = peepTarget + ' cmH₂O';
+  document.getElementById('ieRec').textContent = ieTarget;
+  document.getElementById('fio2Rec').textContent = String(fio2Target);
+  document.getElementById('vminRec').textContent = (isFinite(minuteVent) ? minuteVent : '—') + ' L/min';
+
+  const cstat = estimateCompliance(species, weight, VtNow, Pplat, PEEP);
+  const pinsp = suggestPinsp((PEEP !== undefined ? PEEP : peepTarget), vtTargetMl || 0, cstat);
+  const pcvBox = document.getElementById('pcvBox');
+  pcvBox.style.display = (mode === 'PCV') ? 'block' : 'none';
+  document.getElementById('cstat').textContent = isFinite(cstat) ? Math.round(cstat) : '—';
+  document.getElementById('pinsp').textContent = isFinite(pinsp) ? round(pinsp,1) : '—';
+
+  let dp = undefined;
+  if (Pplat !== undefined && PEEP !== undefined) dp = Pplat - PEEP;
+  document.getElementById('dp').textContent = (dp !== undefined) ? round(dp,1)+' cmH₂O' : '—';
+
+  let pfr = undefined;
+  if (PaO2 !== undefined && FiO2 !== undefined && FiO2>0) pfr = Math.round(PaO2/FiO2);
+  document.getElementById('pfr').textContent = (pfr !== undefined) ? pfr : '—';
+
+  const alertsBox = document.getElementById('alerts');
+  let alerts = [];
+  if (dp !== undefined && dp > 15) alerts.push('Driving pressure > 15 cmH₂O: reduzir Vt e retitular PEEP.');
+  if (Pplat !== undefined && Pplat > 30) alerts.push('Pplat > 30 cmH₂O: reduzir Vt e otimizar PEEP.');
+  alertsBox.style.display = alerts.length ? 'block' : 'none';
+  alertsBox.innerHTML = alerts.join('<br/>');
+
+  const reco = [];
+  const co2 = (PaCO2 !== undefined) ? PaCO2 : EtCO2;
+  if (co2 !== undefined){
+    if (co2>45) reco.push('Hipercapnia: ↑ FR 2–4 rpm OU ↑ Vt 1–2 mL/kg (respeitar Pplat<30 e DP<15).');
+    else if (co2<35) reco.push('Hipocapnia: ↓ FR ou ↓ Vt; revisar profundidade/ansiedade.');
+  }
+  if (PaCO2 !== undefined && EtCO2 !== undefined){
+    const gap = round(PaCO2-EtCO2,1);
+    if (gap>5) reco.push('Gap PaCO₂–EtCO₂ '+gap+' mmHg: considerar ↑ espaço morto/↓ perfusão; avaliar hemodinâmica/PEEP.');
+  }
+  if (SpO2 !== undefined && SpO2<94) reco.push('SpO₂ < 94%: ↑ FiO₂, ↑ PEEP em etapas; investigar atelectasia/desconexão.');
+  if (pfr !== undefined && pfr<300) reco.push('PaO₂/FiO₂ '+pfr+': hipoxemia — otimizar PEEP, considerar recrutamento com cautela, reavaliar hemodinâmica.');
+  if (pattern==='Obstrutiva' && (RR!==undefined ? RR : rrTarget) > (species==='Gato' ? 24 : 20)) reco.push('Risco de auto-PEEP: reduzir FR, alongar tempo expiratório (1:3–1:4), tratar broncoespasmo/secreções.');
+
+  const ul = document.getElementById('recoList');
+  ul.innerHTML = '';
+  reco.forEach(r => { const li=document.createElement('li'); li.textContent=r; ul.appendChild(li); });
+
+  document.getElementById('date').textContent = new Date().toLocaleDateString();
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  for (const id of ['species','weight','context','pattern','mode','EtCO2','PaCO2','SpO2','PaO2','FiO2','PEEP','Pplat','Ppeak','RR','VtNow']){
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.addEventListener('input', recalc);
+    el.addEventListener('change', recalc);
+  }
+  recalc();
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(console.error);
+  }
+});
+</script>
+</body>
+</html>
